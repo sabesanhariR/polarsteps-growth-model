@@ -11,12 +11,12 @@ import matplotlib.pyplot as plt
 
 # Setting global vars for the model
 SEED = 42
-N = 20000
-START_USERS_M = 20.0
-TARGET_USERS_M = 100.0
-MAX_YEARS = 15
+N = 20000 #number of simulated scenarios
+START_USERS_M = 20.0 #Polarsteps data, 20M users in 2024
+TARGET_USERS_M = 100.0 #Polarsteps target
+MAX_YEARS = 15 #just a starting number - can adjust if we have a longer/shorter horizon in mind
 
-# (low, mode, high) triangular ranges -- PLACEHOLDERS, to be sourced
+# (low, mode, high) triangular ranges -- PLACEHOLDERS, to be sourced -- the draw function will sample from these ranges to create the number of scenarios mentioned above
 PARAMS = {
     "active_share":      (0.15, 0.25, 0.40),  # share of users who take a tracked trip in a year
     "invites_per_trip":  (2.0, 5.0, 8.0),     # people reached per active traveller (reported ~5 from Polarsteps data)
@@ -59,19 +59,19 @@ def simulate(p, start=START_USERS_M, target=TARGET_USERS_M, max_years=MAX_YEARS)
         - paths (np.ndarray): 16x20k array, each row is the number of users for each scenario at that year
     '''
     n = len(p["active_share"])
-    users = np.full(n, start)
-    years = np.full(n, np.nan)
+    users = np.full(n, start) #will give each scenario the same starting 20M users
+    years = np.full(n, np.nan) #starts with NaN ro "Not reached yet"
     paths = np.zeros((max_years + 1, n))
     paths[0] = users
-    for t in range(1, max_years + 1):
-        loop_new = users * p["active_share"] * p["invites_per_trip"] * p["conversion"]
-        paid_new = loop_new * p["paid_share_start"] * (1 - p["paid_decay"]) ** (t - 1)
-        saturation = np.clip(1 - users / p["addressable_m"], 0, 1)
-        users = users + (loop_new + paid_new) * saturation
+    for t in range(1, max_years + 1): #runs 15 times
+        loop_new = users * p["active_share"] * p["invites_per_trip"] * p["conversion"] #organic users
+        paid_new = loop_new * p["paid_share_start"] * (1 - p["paid_decay"]) ** (t - 1) #paid users - dimishing each year
+        saturation = np.clip(1 - users / p["addressable_m"], 0, 1) #share of market still open - always btw 0 and 1
+        users = users + (loop_new + paid_new) * saturation #new net yearly users
         paths[t] = users
-        hit = np.isnan(years) & (users >= target)
+        hit = np.isnan(years) & (users >= target) #find the scenario that just hit the target and prevents overwriting the year if it was already reached
         years[hit] = t
-    return years, paths
+    return years, paths #paths array kept, if we need to plot tragectories later
 
 
 def sensitivity(p, years):
@@ -100,9 +100,6 @@ def run(outdir="outputs"):
     p = draw(N, rng)
     years, paths = simulate(p)
     reached = ~np.isnan(years)
-    # print(paths.shape); print(paths[:5, :5]); print(paths[-1, :5])
-    # print(len(years), len(reached))
-    # print(f"Number of years reached: {reached.sum()}")
     summary = {
         "share_reaching_target": reached.mean(),
         "p10_years": np.nanpercentile(years, 10),
