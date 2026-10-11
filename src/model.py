@@ -21,7 +21,7 @@ OUT_DIR = Path("outputs")
 DATA_DIR = Path("data")
 CALIBRATED_CSV = DATA_DIR / "calibrated_draws.csv"
 
-# (low, mode, high) triangular priors. active_share/invites/paid_* are judgement, not sourced.
+# (low, mode, high) triangular priors. active_share/invites/paid_ values are judgement, not sourced.
 # addressable_m is overridden by calibrate.py when Eurostat data is available.
 PARAMS = {
     "active_share":     (0.15, 0.25, 0.40),
@@ -74,7 +74,7 @@ def sensitivity(draws: pd.DataFrame, years_to_target: np.ndarray) -> pd.Series:
         .sort_values(key=abs)
 
 
-def plot(years_to_target: np.ndarray, sens: pd.Series, label: str) -> None:
+def plot(years_to_target: np.ndarray, sens: pd.Series, label: str, suffix: str = "") -> None:
     OUT_DIR.mkdir(exist_ok=True)
     reached = ~np.isnan(years_to_target)
     fig, ax = plt.subplots(figsize=(7, 4))
@@ -82,32 +82,35 @@ def plot(years_to_target: np.ndarray, sens: pd.Series, label: str) -> None:
     ax.set(xlabel=f"Years to {TARGET_USERS_M:.0f}M users",
            ylabel="Simulations",
            title=f"{label}: {reached.mean():.0%} reach target within {HORIZON_YEARS}y")
-    fig.tight_layout(); fig.savefig(OUT_DIR / "years_to_target.png", dpi=150); plt.close(fig)
+    fig.tight_layout(); fig.savefig(OUT_DIR / f"years_to_target{suffix}.png", dpi=150); plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(7, 4))
     ax.barh(sens.index, sens.values, color="#ff7a2a")
     ax.set(xlabel="Spearman correlation with years-to-target", title="What moves the answer most")
-    fig.tight_layout(); fig.savefig(OUT_DIR / "tornado.png", dpi=150); plt.close(fig)
+    fig.tight_layout(); fig.savefig(OUT_DIR / f"tornado{suffix}.png", dpi=150); plt.close(fig)
 
 
-def run(draws: pd.DataFrame, label: str) -> pd.Series:
+def run(draws: pd.DataFrame, label: str, suffix: str = "") -> pd.Series:
     OUT_DIR.mkdir(exist_ok=True)
     years = simulate(draws)
     summary = summarise(years)
     sens = sensitivity(draws, years)
-    summary.to_csv(OUT_DIR / "summary.csv", header=["value"])
-    sens.to_csv(OUT_DIR / "sensitivity.csv", header=["spearman"])
-    plot(years, sens, label)
+    summary.to_csv(OUT_DIR / f"summary{suffix}.csv", header=["value"])
+    sens.to_csv(OUT_DIR / f"sensitivity{suffix}.csv", header=["spearman"])
+    plot(years, sens, label, suffix)
     return summary
 
 
-def main() -> None:
-    if CALIBRATED_CSV.exists():
+def main(use_calibrated: bool = True) -> None:
+    suffix = ""
+    if use_calibrated and CALIBRATED_CSV.exists():
         draws, label = pd.read_csv(CALIBRATED_CSV), "Calibrated"
     else:
-        draws, label = draw_priors(), "Uncalibrated priors"
+        if use_calibrated:
+            print(f"WARNING: {CALIBRATED_CSV} not found, falling back to raw priors")
+        draws, label, suffix = draw_priors(), "Uncalibrated priors", "_uncalibrated"
     print(f"Running model on {len(draws):,} draws ({label})")
-    summary = run(draws, label)
+    summary = run(draws, label, suffix)
     print(summary.round(3).to_string())
 
 

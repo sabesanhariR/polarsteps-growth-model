@@ -50,11 +50,18 @@ pip install -r requirements.txt
 python src/main.py
 ```
 
-Reuse cached Eurostat data without downloading again:
+Command-line options:
 
-```
-python src/main.py --skip-eurostat
-```
+| Command | Eurostat data | Calibration | Model input |
+|---|---|---|---|
+| `python src/main.py` | Download | Runs | Calibrated draws |
+| `python src/main.py --skip-eurostat` | Reuse cached CSVs in `data/` (warns if missing) | Runs | Calibrated draws |
+| `python src/main.py --skip-calibration` | Download | Skipped | Raw priors from `PARAMS` |
+| `python src/main.py --skip-eurostat --skip-calibration` | Reuse cached CSVs | Skipped | Raw priors from `PARAMS` |
+
+- `--skip-eurostat` only skips the download. If `data/eurostat_eu27_travellers.csv` is missing, calibration still runs, but `addressable_m` falls back to the placeholder range in `PARAMS` and a warning is printed.
+
+- `--skip-calibration` runs the forward model on the raw priors, without fitting them to Polarsteps' observed user counts. It is a comparison run to show why calibration matters, not a result to quote. Its outputs are saved with an `_uncalibrated` suffix (for example `outputs/summary_uncalibrated.csv`), so they never overwrite the calibrated files.
 
 Each module also runs on its own (`python src/calibrate.py`, `python src/model.py`). Requires Python 3.10 or newer.
 
@@ -70,6 +77,19 @@ Each module also runs on its own (`python src/calibrate.py`, `python src/model.p
 | `outputs/years_to_target.png` | Histogram of years to 100M among runs that reach it |
 | `outputs/eu27_travellers.png` and other Eurostat charts | Produced by the Eurostat import step |
 
+Runs with `--skip-calibration` also write `outputs/summary_uncalibrated.csv`, `outputs/sensitivity_uncalibrated.csv`, `outputs/tornado_uncalibrated.png` and `outputs/years_to_target_uncalibrated.png`.
+
+### Calibrated versus uncalibrated
+
+| Result | Calibrated (Eurostat ceiling) | Uncalibrated (raw priors) |
+|---|---|---|
+| Reach 100M within 5 years | 56.7% | 0.0% |
+| Reach 100M within 10 years | 99.2% | 4.3% |
+| Reach 100M within 15 years | 99.7% | 21.4% |
+| Median years if reached | 4.9 | 12.2 |
+
+The raw priors imply a much slower growth rate than Polarsteps' own user history shows. Calibration fixes this by solving for `conversion` so that simulated growth matches the published counts. The uncalibrated run is shown only for contrast.
+
 ## Example run (placeholder multiplier, not a forecast)
 
 | Result | Value |
@@ -78,6 +98,7 @@ Each module also runs on its own (`python src/calibrate.py`, `python src/model.p
 | Holdout check, Mar 2026 (observed 20.0M) | 20.3 to 22.1M predicted (p10 to p90) |
 | Reach 100M within 5 years | 56.7% |
 | Reach 100M within 10 years | 99.2% |
+| Reach 100M within 15 years | 99.7% |
 | Median years if reached | 4.9 |
 
 These figures depend heavily on the placeholder world multiplier, which sets the market ceiling. Do not read them as a prediction.
