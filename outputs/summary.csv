@@ -1,0 +1,9 @@
+,value
+p_reach_within_3y,4.5708017186214464e-05
+p_reach_within_5y,0.5672822012981077
+p_reach_within_8y,0.9793399762318311
+p_reach_within_10y,0.9923667611299022
+p_reach_within_15y,0.9967775847883719
+p10_years_if_reached,4.083333333333333
+median_years_if_reached,4.916666666666667
+p90_years_if_reached,6.25
