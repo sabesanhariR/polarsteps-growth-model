@@ -142,7 +142,7 @@ These figures depend heavily on the placeholder world multiplier, which sets the
 
 ## Limitations
 
-- **Only the product of the loop inputs is identified.** Growth data fixes the overall rate k. Active share, invites and conversion trade off against each other after calibration, so their individual sensitivity rankings are not meaningful. Growth data pins down only the overall rate k, given the ceiling. Active share, invites, conversion, paid share and paid decay are not separately identified; they are judgement priors.
+- **Only the product of the loop inputs is identified.** Growth data pins down only the overall rate k, given the ceiling. Active share, invites, conversion, paid share and paid decay are not separately identified; they are judgement priors, so their individual sensitivity rankings are not meaningful.
 - **`active_share` ranks first in the active-user sensitivity partly by definition.** It sets how many registered users the active target needs. This is not evidence that raising active share would speed growth.
 - **Implied `conversion` is far above its prior** (median 0.29, against a prior range of 0.02 to 0.12). It absorbs all growth the other inputs do not explain, such as word of mouth and search. It is not a literal invite-to-install rate.
 - **Active users are a static ratio.** There is no churn, cohort retention or definition of "active" taken from Polarsteps.
