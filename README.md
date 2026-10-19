@@ -1,6 +1,6 @@
 # Polarsteps growth scenario model (v0.2)
 
-An outside-in Monte Carlo model of what could bind Polarsteps' growth from 25M to 100M users, built only from public data and Polarsteps' own published user counts. **It is more like a thinking tool for discussion, than a forecast.**
+An outside-in Monte Carlo model of what could bind Polarsteps' growth from 25M to 100M users, built only from public data and Polarsteps' own published user counts. **It is more like a thinking tool for discussion than a forecast.**
 
 **Status:** v0.2. The growth rate is calibrated to published user counts. The market-size inputs are partly sourced (Eurostat) and partly assumed. v0.2 adds an active-user output and a KPI tree. See [What changed in v0.2](#what-changed-in-v02) and [Limitations](#limitations).
 
@@ -33,10 +33,12 @@ The pipeline has three steps, orchestrated by `src/main.py`.
 
 Each month, new users come from the loop plus a fading paid effect, scaled by the share of the market still open:
 
-loop rate `k_loop` = `active_share` x `invites_per_trip` x `conversion`
-k(t) = `k_loop` x (1 + `paid_share_start` x (1 - `paid_decay`)^t)
-new users = `users` x k(t) x (1 - `users` / `addressable_m`) / 12
-active users = `users` x `active_share`
+```
+k_loop = active_share x invites_per_trip x conversion
+k(t) = k_loop x (1 + paid_share_start x (1 - paid_decay)^t)
+new users = users x k(t) x (1 - users / addressable_m) / 12
+active users = users x active_share
+```
 
 Inputs are drawn from triangular (low, mode, high) ranges. `k` is an annual logistic growth rate. It is not a viral K-factor, so the rule of thumb "K above or below 1" does not apply to it.
 
@@ -44,7 +46,7 @@ Inputs are drawn from triangular (low, mode, high) ranges. `k` is an annual logi
 
 The model treats growth as loops. Users who join send invites that bring in more users (the referral loop, `k_loop`), and paid acquisition adds a fading boost on top (`paid_share_start`, `paid_decay`). Both are capped by the share of the addressable market still open. This follows the framing in Reforge's ["Growth Loops are the New Funnels"](https://www.reforge.com/blog/growth-loops): a funnel does not show how one cohort of users leads to the next.
 
-Two things the model does not do. It has no loop cycle time (growth is continuous). And paid acquisition enters as a multiplier on the loop rate, so paid-acquired users are implicitly assumed to invite like everyone else. Whether paid users are as valuable as organic ones is an open question that needs internal data. See [Planned for v0.3](#planned-for-v03)
+Two things the model does not do. It has no loop cycle time (growth is continuous). And paid acquisition enters as a multiplier on the loop rate, so paid-acquired users are implicitly assumed to invite like everyone else. Whether paid users are as valuable as organic ones is an open question that needs internal data. See [Planned for v0.3](#planned-for-v03).
 
 ## Assumptions
 
@@ -63,8 +65,14 @@ Observed Polarsteps user counts used for calibration: 15M (May 2025), 20M (Mar 2
 ## Setup and run
 ```
 python -m venv .venv
+```
 
-Windows PowerShell: .venv\Scripts\Activate.ps1 | macOS/Linux: source .venv/bin/activate
+Activate the environment:
+- Windows PowerShell: `.venv\Scripts\Activate.ps1`
+- macOS/Linux: `source .venv/bin/activate`
+
+Then install and run:
+```
 pip install -r requirements.txt
 python src/main.py
 ```
@@ -102,12 +110,12 @@ Runs with `--skip-calibration` also write the same files with an `_uncalibrated`
 
 ### Calibrated versus uncalibrated
 
-| Result | Calibrated (Eurostat ceiling) | Uncalibrated (raw priors) |
+| Metric | Uncalibrated | Calibrated |
 |---|---|---|
-| Reach 100M within 5 years | 56.7% | 0.0% |
-| Reach 100M within 10 years | 99.2% | 4.3% |
-| Reach 100M within 15 years | 99.7% | 21.4% |
-| Median years if reached | 4.9 | 12.2 |
+| P(reach 100M within 5 years) | 0.0% | 56.7% |
+| P(reach 100M within 10 years) | 4.3% | 99.2% |
+| P(reach 100M within 15 years) | 21.4% | 99.7% |
+| Median time to 100M (runs that reach it) | 12.2 years | 4.9 years |
 
 The raw priors imply a much slower growth rate than Polarsteps' own user history shows. Calibration fixes this by solving for `conversion` so that simulated growth matches the published counts. The uncalibrated run is shown only for contrast.
 
@@ -134,7 +142,7 @@ These figures depend heavily on the placeholder world multiplier, which sets the
 
 ## Limitations
 
-- **Only the product of the loop inputs is identified.** Growth data fixes the overall rate k. Active share, invites and conversion trade off against each other after calibration, so their individual sensitivity rankings are not meaningful. Only the ceiling (`addressable_m`), paid share, paid decay and k carry real information.
+- **Only the product of the loop inputs is identified.** Growth data fixes the overall rate k. Active share, invites and conversion trade off against each other after calibration, so their individual sensitivity rankings are not meaningful. Growth data pins down only the overall rate k, given the ceiling. Active share, invites, conversion, paid share and paid decay are not separately identified; they are judgement priors.
 - **`active_share` ranks first in the active-user sensitivity partly by definition.** It sets how many registered users the active target needs. This is not evidence that raising active share would speed growth.
 - **Implied `conversion` is far above its prior** (median 0.29, against a prior range of 0.02 to 0.12). It absorbs all growth the other inputs do not explain, such as word of mouth and search. It is not a literal invite-to-install rate.
 - **Active users are a static ratio.** There is no churn, cohort retention or definition of "active" taken from Polarsteps.
@@ -159,7 +167,7 @@ Not part of v0.2. Listed in the order I would do them.
 | **Retention layer** | Replace the static `active_share` ratio with a simple retention curve, so that active users can fall as well as rise. | Planned. Needs an assumed curve, since I have no cohort data |
 | **Paid versus organic quality** | Allow paid-acquired users to differ from organic ones in how much they invite, instead of assuming they behave the same. | Planned. Needs internal data to calibrate |
 
-Anything calibrated on internal data (retention, the paid versus organic split, referral-attributed installs) would need data that only Polarsteps has. Until then these stay as dramatic scenarios that I think, with the little knowledge that I have, how it would unfold and definitely not a prediction or forecast.
+Anything calibrated on internal data (retention, the paid versus organic split, referral-attributed installs) would need data that only Polarsteps has. Until then these stay as scenarios: my best guess, from limited knowledge, of how things could unfold. They are not a prediction or forecast.
 
 ## Data & other sources
 
@@ -167,3 +175,6 @@ Anything calibrated on internal data (retention, the paid versus organic split, 
 - Eurostat, population on 1 January by broad age group (`demo_pjanbroad`)
 - Polarsteps' published user milestones
 - Reforge, ["Growth Loops are the New Funnels"](https://www.reforge.com/blog/growth-loops); Lenny Rachitsky, ["Choosing Your North Star Metric"](https://future.a16z.com/north-star-metrics/); Reforge, ["North Star metrics"](https://www.reforge.com/blog/north-star-metrics) (framing only, see [docs/kpi_tree.md](docs/kpi_tree.md))
+
+
+Learning log: [appendix.md](appendix.md).
